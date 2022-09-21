@@ -1,3 +1,4 @@
+import decimal
 from sqlalchemy import text, types, util
 from sqlalchemy.engine import default
 from sqlalchemy.sql import compiler
@@ -114,6 +115,7 @@ class DruidDialect(default.DefaultDialect):
             "scheme": self.scheme,
             "context": self.context,
             "header": url.query.get("header") == "true",
+            "parse_float": decimal.Decimal if url.query.get("parse_float_as_decimal") == "true" else float,
         }
         return ([], kwargs)
 
