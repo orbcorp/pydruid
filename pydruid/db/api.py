@@ -1,3 +1,4 @@
+import decimal
 import itertools
 import json
 from collections import namedtuple, OrderedDict
@@ -110,7 +111,7 @@ def get_type(value):
         return Type.STRING
     elif isinstance(value, bool):
         return Type.BOOLEAN
-    elif isinstance(value, (int, float)):
+    elif isinstance(value, (int, float, decimal.Decimal)):
         return Type.NUMBER
 
     raise exceptions.Error("Value of unknown type: {value}".format(value=value))
