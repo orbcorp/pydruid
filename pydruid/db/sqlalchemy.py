@@ -116,6 +116,7 @@ class DruidDialect(default.DefaultDialect):
             "context": self.context,
             "header": url.query.get("header") == "true",
             "parse_float": decimal.Decimal if url.query.get("parse_float_as_decimal") == "true" else float,
+            "ssl_verify_cert": url.query.get("ssl_verify_cert", True),
         }
         return ([], kwargs)
 
