@@ -106,6 +106,8 @@ class DruidDialect(default.DefaultDialect):
         return pydruid.db
 
     def create_connect_args(self, url):
+        parse_float = decimal.Decimal if url.query.pop("parse_float_as_decimal", None) == "true" else float
+        ssl_verify_cert = url.query.pop("ssl_verify_cert", True)
         kwargs = {
             **url.query,
             "host": url.host,
@@ -116,8 +118,8 @@ class DruidDialect(default.DefaultDialect):
             "scheme": self.scheme,
             "context": self.context,
             "header": url.query.get("header") == "true",
-            "parse_float": decimal.Decimal if url.query.get("parse_float_as_decimal") == "true" else float,
-            "ssl_verify_cert": url.query.get("ssl_verify_cert", True),
+            "parse_float": parse_float,
+            "ssl_verify_cert": ssl_verify_cert,
         }
         return ([], kwargs)
 
