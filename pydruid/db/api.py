@@ -1,3 +1,4 @@
+import decimal
 import itertools
 import json
 from collections import namedtuple, OrderedDict
@@ -26,6 +27,7 @@ def connect(
     ssl_verify_cert=True,
     ssl_client_cert=None,
     proxies=None,
+    parse_float=float,
 ):  # noqa: E125
     """
     Constructor for creating a connection to the database.
@@ -48,6 +50,7 @@ def connect(
         ssl_verify_cert,
         ssl_client_cert,
         proxies,
+        parse_float,
     )
 
 
@@ -108,7 +111,7 @@ def get_type(value):
         return Type.STRING
     elif isinstance(value, bool):
         return Type.BOOLEAN
-    elif isinstance(value, (int, float)):
+    elif isinstance(value, (int, float, decimal.Decimal)):
         return Type.NUMBER
 
     raise exceptions.Error("Value of unknown type: {value}".format(value=value))
@@ -130,6 +133,7 @@ class Connection(object):
         ssl_verify_cert=True,
         ssl_client_cert=None,
         proxies=None,
+        parse_float=float
     ):
         netloc = "{host}:{port}".format(host=host, port=port)
         self.url = parse.urlunparse((scheme, netloc, path, None, None, None))
@@ -142,6 +146,7 @@ class Connection(object):
         self.ssl_verify_cert = ssl_verify_cert
         self.ssl_client_cert = ssl_client_cert
         self.proxies = proxies
+        self.parse_float = parse_float
 
     @check_closed
     def close(self):
@@ -175,6 +180,7 @@ class Connection(object):
             self.ssl_verify_cert,
             self.ssl_client_cert,
             self.proxies,
+            self.parse_float,
         )
 
         self.cursors.append(cursor)
@@ -206,6 +212,7 @@ class Cursor(object):
         ssl_verify_cert=True,
         ssl_client_cert=None,
         proxies=None,
+        parse_float=float,
     ):
         self.url = url
         self.context = context or {}
@@ -215,6 +222,7 @@ class Cursor(object):
         self.ssl_verify_cert = ssl_verify_cert
         self.ssl_client_cert = ssl_client_cert
         self.proxies = proxies
+        self.parse_float = parse_float
 
         # This read/write attribute specifies the number of rows to fetch at a
         # time with .fetchmany(). It defaults to 1 meaning to fetch a single
@@ -371,7 +379,7 @@ class Cursor(object):
         # size
         chunks = r.iter_content(chunk_size=None, decode_unicode=True)
         Row = None
-        for row in rows_from_chunks(chunks):
+        for row in rows_from_chunks(chunks, self.parse_float):
             # update description
             if self.description is None:
                 self.description = (
@@ -384,7 +392,7 @@ class Cursor(object):
             yield Row(*row.values())
 
 
-def rows_from_chunks(chunks):
+def rows_from_chunks(chunks, parse_float):
     """
     A generator that yields rows from JSON chunks.
 
@@ -429,7 +437,7 @@ def rows_from_chunks(chunks):
         body = body[boundary:]
 
         for row in json.loads(
-            "[{rows}]".format(rows=rows), object_pairs_hook=OrderedDict
+            "[{rows}]".format(rows=rows), object_pairs_hook=OrderedDict, parse_float=parse_float
         ):
             yield row
 
