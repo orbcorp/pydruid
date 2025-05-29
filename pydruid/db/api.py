@@ -447,6 +447,7 @@ def rows_from_chunks_escape_backslashes(chunks, parse_float):
     """
     Version of rows_from_chunks with experimental support for escaping backslashes.
     """
+    print("Reading rows with escape backslashes enabled.")
     body = ""
     for chunk in chunks:
         if chunk:
