@@ -408,6 +408,7 @@ def rows_from_chunks(chunks, parse_float):
     JSON objects. This function will parse all complete rows inside each chunk,
     yielding them as soon as possible.
     """
+    print("Reading rows with escape backslashes disabled.")
     body = ""
     for chunk in chunks:
         if chunk:
