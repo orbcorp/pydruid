@@ -28,7 +28,6 @@ def connect(
     ssl_client_cert=None,
     proxies=None,
     parse_float=float,
-    escape_backslashes=False
 ):  # noqa: E125
     """
     Constructor for creating a connection to the database.
@@ -52,7 +51,6 @@ def connect(
         ssl_client_cert,
         proxies,
         parse_float,
-        escape_backslashes
     )
 
 
@@ -135,8 +133,7 @@ class Connection(object):
         ssl_verify_cert=True,
         ssl_client_cert=None,
         proxies=None,
-        parse_float=float,
-        escape_backslashes=False
+        parse_float=float
     ):
         netloc = "{host}:{port}".format(host=host, port=port)
         self.url = parse.urlunparse((scheme, netloc, path, None, None, None))
@@ -150,7 +147,6 @@ class Connection(object):
         self.ssl_client_cert = ssl_client_cert
         self.proxies = proxies
         self.parse_float = parse_float
-        self.escape_backslashes = escape_backslashes
 
     @check_closed
     def close(self):
@@ -185,7 +181,6 @@ class Connection(object):
             self.ssl_client_cert,
             self.proxies,
             self.parse_float,
-            self.escape_backslashes
         )
 
         self.cursors.append(cursor)
@@ -218,7 +213,6 @@ class Cursor(object):
         ssl_client_cert=None,
         proxies=None,
         parse_float=float,
-        escape_backslashes=False
     ):
         self.url = url
         self.context = context or {}
@@ -229,7 +223,6 @@ class Cursor(object):
         self.ssl_client_cert = ssl_client_cert
         self.proxies = proxies
         self.parse_float = parse_float
-        self.escape_backslashes = escape_backslashes
 
         # This read/write attribute specifies the number of rows to fetch at a
         # time with .fetchmany(). It defaults to 1 meaning to fetch a single
@@ -386,8 +379,7 @@ class Cursor(object):
         # size
         chunks = r.iter_content(chunk_size=None, decode_unicode=True)
         Row = None
-        row_generator = rows_from_chunks_escape_backslashes(chunks, self.parse_float) if self.escape_backslashes else rows_from_chunks(chunks, self.parse_float)
-        for row in row_generator:
+        for row in rows_from_chunks(chunks, self.parse_float):
             # update description
             if self.description is None:
                 self.description = (
@@ -407,45 +399,6 @@ def rows_from_chunks(chunks, parse_float):
     Druid will return the data in chunks, but they are not aligned with the
     JSON objects. This function will parse all complete rows inside each chunk,
     yielding them as soon as possible.
-    """
-    body = ""
-    for chunk in chunks:
-        if chunk:
-            body = "".join((body, chunk))
-
-        # find last complete row
-        boundary = 0
-        brackets = 0
-        in_string = False
-        for i, char in enumerate(body):
-            if char == '"':
-                if not in_string:
-                    in_string = True
-                elif body[i - 1] != "\\":
-                    in_string = False
-
-            if in_string:
-                continue
-
-            if char == "{":
-                brackets += 1
-            elif char == "}":
-                brackets -= 1
-                if brackets == 0 and i > boundary:
-                    boundary = i + 1
-
-        rows = body[:boundary].lstrip("[,")
-        body = body[boundary:]
-
-        for row in json.loads(
-            "[{rows}]".format(rows=rows), object_pairs_hook=OrderedDict, parse_float=parse_float
-        ):
-            yield row
-
-
-def rows_from_chunks_escape_backslashes(chunks, parse_float):
-    """
-    Version of rows_from_chunks with experimental support for escaping backslashes.
     """
     body = ""
     for chunk in chunks:
